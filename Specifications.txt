@@ -1,0 +1,2666 @@
+﻿Here are the detailed functional and technical specifications for the Multi-Agent System (MAS) for novel writing. This document is intended to provide a developer with the necessary information to begin building the platform.
+1. Detailed Functional Specifications
+1.1. User Onboarding
+* User Story: As a new user, I want a quick and informative onboarding process so that I can understand the system's capabilities and choose the level of collaboration that best suits my writing style.
+* Acceptance Criteria:
+   * A welcome screen that briefly explains the concept of the MAS.
+   * A multi-step tour that details each of the four levels of user involvement.
+   * Interactive examples within the tour that show how the user would interact with the system at each level.
+   * The ability to skip the onboarding process.
+* UI/UX Details:
+   * A clean, minimalist design with clear typography.
+   * Use of modals or a guided tour library (e.g., Shepherd.js) for the walkthrough.
+   * A progress bar to indicate the user's position in the onboarding process.
+1.2. Project Creation
+* User Story: As a user, I want to be able to start a new novel project by providing a core concept, genre, and desired tone, so that the MAS has a clear starting point.
+* Acceptance Criteria:
+   * A "New Project" button that is prominently displayed on the user's dashboard.
+   * A form with fields for:
+      * Project Title: Text input.
+      * Core Concept/Logline: A text area for a detailed description.
+      * Genre: A multi-select dropdown with options like "Science Fiction," "Fantasy," "Mystery," "Romance," "Thriller," "Historical Fiction," etc.
+      * Tone: A multi-select dropdown with options like "Serious," "Humorous," "Dark," "Optimistic," etc.
+      * Level of Involvement: A selection of the four collaboration levels.
+   * Upon submission, a new project is created, and the user is taken to the Collaboration Dashboard.
+* UI/UX Details:
+   * A simple, single-page form.
+   * Tooltips to explain each field.
+   * Auto-saving of drafts as the user types.
+1.3. Collaboration Dashboard
+* User Story: As a user, I want a central dashboard for each project where I can track progress, review the generated content, and interact with the AI agents.
+* Acceptance Criteria:
+   * A main view displaying the current status of the project (e.g., "Researching," "Outlining," "Writing Chapter 3").
+   * A navigation panel with links to:
+      * Manuscript: A view of the generated text.
+      * World Bible: The details created by the World Builder.
+      * Characters: The profiles from the Character Architect.
+      * Plot Outline: The outline from the Plotter.
+      * Illustrations: The images from the Illustrator.
+      * Agent Chat: The interface for communicating with the Project Manager.
+   * A notification system to alert the user when their input is required.
+* UI/UX Details:
+   * A three-panel layout: navigation on the left, main content in the center, and a context-aware panel on the right (e.g., for comments or agent chat).
+   * Real-time updates to the project status.
+   * A "timeline" view to visualize the project's progress.
+1.4. Agent Interaction Interface
+* User Story: As a user, I want a seamless way to communicate with the Project Manager agent to provide feedback, ask questions, and make changes to the project's direction.
+* Acceptance Criteria:
+   * A chat interface that allows for natural language communication with the PM agent.
+   * The ability to issue commands (e.g., "/revise-chapter-2," "/add-new-character").
+   * A history of all interactions with the PM agent.
+   * The PM agent can present the user with choices (e.g., "Which of these plot twists do you prefer?").
+* UI/UX Details:
+   * A familiar chat interface similar to popular messaging apps.
+   * Support for markdown and code snippets.
+   * "Typing" indicators to show when the agent is processing a request.
+2. Detailed Technical Specifications
+2.1. System Architecture Diagram
+graph TD
+   A[User Interface (React/Vue.js)] -- REST/GraphQL API --> B(Backend API Gateway);
+   B -- Secure gRPC --> C{MAS Core};
+   C -- Manages --> D[Project Manager Agent];
+   D -- Assigns Tasks --> E[Researcher Agent];
+   D -- Assigns Tasks --> F[World Builder Agent];
+   D -- Assigns Tasks --> G[Character Architect Agent];
+   D -- Assigns Tasks --> H[Plotter Agent];
+   D -- Assigns Tasks --> I[Writer Agent];
+   D -- Assigns Tasks --> J[Editor Agent];
+   D -- Assigns Tasks --> K[Illustrator Agent];
+   E -- Stores/Retrieves --> L[Vector Database (Pinecone/Weaviate)];
+   F -- Stores/Retrieves --> L;
+   G -- Stores/Retrieves --> L;
+   H -- Stores/Retrieves --> L;
+   I -- Stores/Retrieves --> L;
+   J -- Stores/Retrieves --> L;
+   C -- Reads/Writes --> M[SQL/NoSQL Database];
+   A -- Reads/Writes --> M;
+
+
+2.2. Agent Workflow Diagram
+graph TD
+   Start --> A{User Creates Project};
+   A --> B[PM Agent: Deconstructs Concept];
+   B --> C[PM Agent: Create Project Plan];
+   C --> D{Assign Research};
+   D --> E[Researcher Agent: Gather Info];
+   E --> F{Store in Vector DB};
+   F --> G{Assign World Building};
+   G --> H[World Builder Agent: Create World Bible];
+   H --> I{Store in Vector DB};
+   I --> J{Assign Character Design};
+   J --> K[Character Architect Agent: Create Profiles];
+   K --> L{Store in Vector DB};
+   L --> M{Assign Plotting};
+   M --> N[Plotter Agent: Outline Plot];
+   N --> O{User Approval?};
+   O -- Yes --> P{Assign Writing};
+   O -- No --> N;
+   P --> Q[Writer Agent: Write Chapter];
+   Q --> R{User Approval?};
+   R -- Yes --> S{Assign Editing};
+   R -- No --> Q;
+   S --> T[Editor Agent: Review & Revise];
+   T --> U{User Approval?};
+   U -- Yes --> V{Assign Illustration (Optional)};
+   U -- No --> T;
+   V --> W[Illustrator Agent: Create Image];
+   W --> X{User Approval?};
+   X -- Yes --> Y{Continue to Next Chapter};
+   X -- No --> W;
+   Y --> P;
+   Y --> End;
+
+2.3. Data Flow Diagram
+graph TD
+   A[User Input: Project Concept] --> B{Backend API};
+   B --> C[Project Manager Agent];
+   C --> D{Task Definitions};
+   D --> E[Specialized Agents];
+   E -- Research Queries --> F[External APIs/Web];
+   F -- Research Data --> E;
+   E -- Generates --> G[Structured Data (World/Characters/Plot)];
+   G --> H{Vector Database};
+   E -- Reads Context --> H;
+   I[Writer Agent] -- Reads Context --> H;
+   I -- Generates --> J[Manuscript Text];
+   J --> K{SQL/NoSQL Database};
+   L[User] -- Views --> M[UI];
+   M -- Fetches Data --> K;
+   M -- Fetches Data --> H;
+
+2.4. Technology Stack and Implementation Details
+Component
+	Technology/Framework
+	Implementation Details
+	Multi-Agent Framework
+	CrewAI
+	- Project Manager Agent: The central orchestrator. It will use a SequentialCrew to manage the initial research, world-building, character, and plotting phases. It will then switch to a process of iterative writing and editing, looping through the Writer and Editor agents for each chapter. - Specialized Agents: Each will have a specific role, goal, and backstory defined in CrewAI. For instance, the Plotter's goal could be "to create a compelling three-act structure, or a narrative following the 'path of the fool' tarot journey, based on the user's preference." - Tools: Agents will be equipped with tools. The Researcher will have a SerperDevTool or similar for web searches. The Illustrator will have a tool that interfaces with an image generation API like DALL-E 3 or Midjourney.
+	Data Models (Schemas)
+	PostgreSQL (for structured data) & Pinecone (for vector data)
+	User Table (PostgreSQL): id, username, email, password_hash, created_at. Project Table (PostgreSQL): id, user_id, title, concept, genre, tone, status, created_at. Manuscript Table (PostgreSQL): id, project_id, chapter_number, content, version. Vector Data (Pinecone): Each piece of contextual information (a character's backstory, a location's description, a plot point) will be stored as a vector with associated metadata (e.g., project_id, source_agent, entity_type). This will allow for semantic search by the agents.
+	API Endpoints
+	RESTful API with FastAPI
+	Authentication: /auth/register, /auth/login. Projects: GET /projects, POST /projects, GET /projects/{project_id}. Manuscript: GET /projects/{project_id}/manuscript. Agent Interaction: POST /projects/{project_id}/chat (for sending messages to the PM agent).
+	Agent Communication
+	Message Passing within CrewAI
+	- The Project Manager will pass Task objects to the other agents. - Agents will return their results as strings or structured data. - The PM agent will be responsible for parsing the output of one agent and formatting it as the input for the next. For example, it will take the Plotter's outline and provide it to the Writer as the context for a writing task.
+	This detailed guide should provide a solid foundation for a development team to begin the process of creating this innovative novel-writing platform. The key to success will be the careful implementation of the agentic workflows and the intuitive design of the user interface, which will allow for a truly collaborative and creative experience.
+
+
+Excellent question. While the existing specifications provide a strong foundation for development, a production-ready system requires fleshing out several critical areas that address robustness, user control, and operational realities.
+Here are the details for the remaining key areas of the specification.
+Section 5: Error Handling and System Resilience
+This section details how the system will handle unexpected failures, ensuring a smooth user experience even when agents or services encounter issues.
+ * User Story: As a user, if an AI agent gets stuck or an error occurs, I want the system to handle it gracefully, inform me of the problem, and provide options to recover, so I don't lose my work or get frustrated.
+ * Technical Details & Implementation:
+   * Agent-Level Error Handling:
+     * Retry Logic: Each agent task will be wrapped in a retry mechanism (e.g., using Python's tenacity library). If an agent fails due to a transient issue like an API timeout, the Project Manager (PM) agent will automatically retry the task up to three times with exponential backoff.
+     * Input Validation: The PM agent will validate the output of each agent to ensure it conforms to the expected format. If an agent produces malformed output or "hallucinates" irrelevant content, the PM will re-issue the task with a clarifying instruction, such as "Please provide the output in JSON format as requested."
+     * Failure Escalation: If a task fails after multiple retries, it will be escalated to the PM agent. The PM will then present the issue to the user via the Agent Chat interface, offering diagnostic information and potential solutions (e.g., "The Researcher agent is having trouble accessing information about this specific historical event. Would you like to provide the information manually, or should we try a different research angle?").
+   * System-Level Error Handling:
+     * UI Notifications: The frontend will display non-intrusive toast notifications for recoverable errors (e.g., "Request timed out, retrying..."). For critical, unrecoverable errors, a modal will appear with a clear explanation and a link to support.
+     * Health Checks: The API will have a /health endpoint that checks the status of core services (database, vector store, primary LLM API). This is crucial for monitoring and automated recovery in a production environment.
+Section 6: User Settings and Personalization
+This section defines how users can customize their experience and how the system learns and adapts to their preferences.
+ * User Story: As a user, I want a settings page where I can define my writing preferences, manage my profile, and set default behaviors for the AI agents, so the system feels tailored to my unique style.
+ * UI Mockup: Settings Screen
+   +--------------------------------------------------------------------------+
+| [Logo] NovelForge AI | Settings                                         |
++--------------------------------------------------------------------------+
+|                                                                          |
+|   [ Profile ]   [ Writing Preferences ]   [ API Keys ]   [ Subscription ]  |
+|  ----------------------------------------------------------------------  |
+|                                                                          |
+|   **Writing Preferences** |
+|                                                                          |
+|   Default Writing Style (for Writer Agent):                              |
+|   +------------------------------------------------------------------+   |
+|   | Prose should be... [Concise], [Descriptive], [Literary], [Pithy] |   |
+|   +------------------------------------------------------------------+   |
+|                                                                          |
+|   Preferred Narrative Structures (for Plotter Agent):                    |
+|   [x] Three-Act Structure        [x] The Hero's Journey                  |
+|   [x] The Path of the Fool       [ ] Fichtean Curve                      |
+|                                                                          |
+|   Custom Instructions for Agents:                                        |
+|   +------------------------------------------------------------------+   |
+|   | Always avoid clichés. When describing characters, focus more on  |   |
+|   | their actions and dialogue than their physical appearance.       |   |
+|   +------------------------------------------------------------------+   |
+|                                                                          |
+|                                [ Save Preferences ]                      |
+|                                                                          |
++--------------------------------------------------------------------------+
+
+
+ * Technical Details & Implementation:
+   * Preferences Storage: User preferences will be stored in a dedicated table in the PostgreSQL database, linked to the user_id.
+   * Dynamic Prompting: When the PM agent initializes a task for another agent, it will first retrieve the user's preferences. These preferences will be injected into the agent's system prompt as a set of guiding principles. For example, the Plotter's prompt will include a line like: The user's preferred narrative structures are: [Three-Act Structure, The Path of the Fool]. Prioritize these when developing the outline.
+   * API Key Management: The "API Keys" section will allow advanced users to optionally provide their own LLM API keys, which will be encrypted at rest and used for their projects.
+Section 7: Scalability, Performance, and Asynchronous Tasks
+This section addresses how the system will handle long-running processes and scale to support many users.
+ * Technical Details & Implementation:
+   * Asynchronous Task Queue: Long-running agent tasks (e.g., writing a chapter, conducting extensive research) cannot be handled by a synchronous API request, as this would lead to timeouts. The system will use a distributed task queue like Celery with RabbitMQ or Redis as the message broker.
+   * Workflow:
+     * User makes a request that triggers a long task (e.g., clicking "Generate Chapter").
+     * The Backend API immediately returns a 202 Accepted response and places a job on the Celery queue.
+     * A pool of Celery workers (running on separate servers) picks up the job and executes the agentic workflow.
+     * The UI polls the backend or receives a WebSocket push notification to update the project status in real-time (e.g., showing a progress bar or changing status from "Queued" to "Writing").
+     * When the task is complete, the result is saved to the database, and the user is notified.
+   * Scalability: This architecture allows for independent scaling. If agent processing becomes a bottleneck, we can simply add more Celery worker nodes without affecting the main web server.
+Section 8: Security and Data Privacy
+This section is critical for building user trust. It details how their creative work and personal data will be protected.
+ * Technical Details & Implementation:
+   * Authentication & Authorization:
+     * JWT (JSON Web Tokens): Use JWT for authenticating API requests after the user logs in.
+     * Endpoint Authorization: All API endpoints will validate the JWT and ensure the authenticated user has permission to access the requested resource (e.g., User A cannot access Project B).
+   * Data Encryption:
+     * At Rest: All user-generated content in the PostgreSQL database and the vector database will be encrypted using industry-standard AES-256 encryption.
+     * In Transit: All communication between the user's client, the backend, and external APIs will be encrypted using TLS 1.2 or higher.
+   * API Key Security: All internal and user-provided API keys will be stored in a secure secret manager (e.g., HashiCorp Vault, AWS Secrets Manager) and never exposed in client-side code.
+Section 9: Versioning and Export Features
+This expands on the previously mentioned feature, adding necessary detail.
+ * User Story: As a user, I want to be able to save snapshots of my project at key moments and see a history of changes, so I can experiment freely without fear of losing good ideas. I also want to export my manuscript in formats compatible with professional writing software.
+ * Technical Details & Implementation:
+   * Versioning:
+     * Manual Snapshots: The UI will have a "Create Snapshot" button. This will create a version tag in a Snapshots table, linking to the state of the manuscript, world bible, and character profiles at that moment. This is more efficient than duplicating all data.
+     * Automatic History: The system will automatically save a version of a document (e.g., a chapter) before new changes from the Writer or Editor agent are applied.
+     * UI for History: A "History" panel will allow users to view, name, and revert to previous snapshots.
+   * Export Formats:
+     * A dedicated export module will use libraries like pandoc to convert the manuscript.
+     * Supported Formats: .docx, .txt, .pdf, .epub.
+     * Advanced Formats: For a premium tier, support for .scriv (Scrivener project) and .fountain (for screenwriting) could be added, which would involve a more complex conversion process.
+By fleshing out these sections, the specifications now represent a more complete and robust plan for building a secure, scalable, and user-friendly MAS novel writing system.
+
+
+
+
+Of course. Here are several text-based mockups that visualize the key screens of the MAS novel writing system. These are designed to be clear blueprints for a UI/UX designer and frontend developer.
+The overall design aesthetic should be clean, modern, and focused, with an emphasis on typography and readability. The color palette would be a mix of calming dark-grays for the main interface, with vibrant blues for interactive elements and accents.
+Mockup 1: New Project Screen
+This is the first creative step for the user. It's a simple, uncluttered modal or full-screen view that captures the foundational ideas for the novel.
++--------------------------------------------------------------------------+
+|  [Logo] NovelForge AI                                                    |
++--------------------------------------------------------------------------+
+|                                                                          |
+|                           Start Your New Novel                           |
+|                                                                          |
+|   Project Title                                                          |
+|   +------------------------------------------------------------------+   |
+|   | The Alchemist of Neo-Prague                                      |   |
+|   +------------------------------------------------------------------+   |
+|                                                                          |
+|   Core Concept (Logline)                                                 |
+|   +------------------------------------------------------------------+   |
+|   | In a city powered by clockwork and alchemy, a disgraced          |   |
+|   | inventor must team up with a golem detective to solve a series   |   |
+|   | of impossible murders before the city's power source collapses.  |   |
+|   |                                                                  |   |
+|   +------------------------------------------------------------------+   |
+|                                                                          |
+|   Genre(s)                                 Tone(s)                       |
+|   +--------------------------+           +--------------------------+    |
+|   | [x] Steampunk [ ] Fantasy|           | [x] Mystery  [ ] Humorous|    |
+|   | [x] Mystery   [ ] Sci-Fi |           | [ ] Dark     [x] Adventu-|    |
+|   | [ ] Romance   [ ] Thrillr|           | |     rous               |    |
+|   +--------------------------+           +--------------------------+    |
+|                                                                          |
+|   Choose Your Involvement Level (Learn more)                             |
+|   (o) Architect - Give the concept and let the agents work.              |
+|   ( ) Director  - Provide the concept and approve key stages.            |
+|   ( ) Collaborator - Actively work with the agents on every step.        |
+|   ( ) Assistant - Write yourself and call on agents for specific tasks.  |
+|                                                                          |
+|                                [ Create Project ]                        |
+|                                                                          |
++--------------------------------------------------------------------------+
+
+
+Mockup 2: Collaboration Dashboard
+This is the user's main hub. It uses a three-panel layout to provide easy navigation, a clear view of the content, and a direct line of communication to the AI.
++-----------------------------------------------------------------------------------------------------------+
+| [Logo] NovelForge AI | Project: The Alchemist of Neo-Prague  | User: Lyra | [Notifications (3)] [Profile] |
++-----------------------------------------------------------------------------------------------------------+
+|                            |                                                |                              |
+| NAVIGATION                 | MANUSCRIPT - Chapter 3: The Brass Automaton    | AGENT CHAT                   |
+|----------------------------|------------------------------------------------|------------------------------|
+| [> Manuscript]             |                                                | [Project Manager]            |
+|   - Chapter 1: ...         |  The rain fell in sheets over the cobblestone  | Lyra: The pacing feels a     |
+|   - Chapter 2: ...         |  streets of the Iron Quarter. Cogsworth, my    | bit slow in this chapter. Can|
+|  *[ Chapter 3: ...]        |  golem companion, paid it no mind. His ceramic | we add a chase scene after   |
+|                            |  chassis was built to withstand far more than  | Cogsworth discovers the clue?|
+| [> World Bible]            |  a summer storm.                               |                              |
+|   - Neo-Prague Districts   |                                                | PM (typing...)               |
+|   - The Alchemy Engine     |  "The killer left this," he rumbled, his voice |                              |
+|                            |  a low grind of stone on stone. He held up a   |                              |
+| [> Characters]             |  small, intricately carved gear made of a bone-|                              |
+|   - Kaelen, the Inventor   |  white material I'd never seen before. It hummed |                              |
+|   - Cogsworth, the Golem   |  with a faint, sickly energy.                  |                              |
+|                            |                                                |                              |
+| [> Plot Outline]           |  [Add Comment +]                               |                              |
+|   - Act I                  |  "That's no ordinary gear," I whispered, pulling|                              |
+|   - Act II                 |  out my loupe. "That's a phylactery..."         |                              |
+|   - Act III                |                                                |                              |
+|                            |                                                |                              |
+| [> Illustrations]          |                                                |                              |
+|                            |                                                |                              |
+|----------------------------|                                                |                              |
+| PROJECT STATUS             |                                                |                              |
+| Writing: Chapter 3         |                                                |                              |
+| [|||||||||||---] 85%        |                                                |                              |
+|                            |                                                |                              |
++-----------------------------------------------------------------------------------------------------------+
+
+
+Mockup 3: Manuscript View with Comments
+This view focuses on the text itself, providing a word-processor-like experience with added collaborative features for users at the "Collaborator" or "Director" level.
++-----------------------------------------------------------------------------------------------------------+
+| [File] [Edit] [View] [Insert] [Tools]                                       [Share] [Download As...]      |
++-----------------------------------------------------------------------------------------------------------+
+|                                                                             |                           |
+|  Chapter 3: The Brass Automaton                                             | COMMENTS & SUGGESTIONS    |
+|                                                                             |---------------------------|
+|  The rain fell in sheets over the cobblestone streets of the                |                           |
+|  Iron Quarter. Cogsworth, my golem companion, paid it no mind.              | [Lyra] - 2 min ago        |
+|  His ceramic chassis was built to withstand far more than a summer storm.   | Can we describe the rain  |
+|                                                                             | making sizzle sounds on   |
+|  "The killer left this," he rumbled, his voice a low grind of stone on      | his chassis? Would add a  |
+|  stone. He held up a small, intricately carved gear made of a bone-white    | nice sensory detail.      |
+|  material I'd never seen before. It hummed with a faint, sickly energy.     | [Accept] [Reject] [Reply] |
+|  <----------------------------------------------------------------------->  |                           |
+|  | This sentence feels a bit weak. Maybe something more active? - Editor   |                           |
+|  <----------------------------------------------------------------------->  |---------------------------|
+|                                                                             |                           |
+|  "That's no ordinary gear," I whispered, pulling out my loupe. "That's      | [Editor] - 5 min ago      |
+|  a phylactery..."                                                           | Suggestion: "That's no    |
+|                                                                             | ordinary gear," I said,   |
+|                                                                             | my breath catching as I   |
+|                                                                             | raised my loupe. "It's a  |
+|                                                                             | phylactery..."            |
+|                                                                             | [Accept] [Reject]         |
+|                                                                             |                           |
++-----------------------------------------------------------------------------------------------------------+
+
+
+Mockup 4: Agent Interaction View (Standalone)
+For users at the "Assistant" level, or for focused tasks, this view provides a clean, direct line to a specific agent for a specific purpose.
++--------------------------------------------------------------------------+
+|  [Logo] NovelForge AI                                                    |
++--------------------------------------------------------------------------+
+|                                                                          |
+|                           Agent Task: Brainstorm Character               |
+|                                                                          |
+|   Select Agent: [Character Architect v]                                  |
+|                                                                          |
+|   Your Request:                                                          |
+|   +------------------------------------------------------------------+   |
+|   | I need a villain for my story. She's the shadowy head of the     |   |
+|   | Alchemists' Guild. She should be motivated by a secret loss from |   |
+|   | her past. Can you give me three concepts for her, including a    |   |
+|   | name, a brief backstory, and her core motivation?                |   |
+|   +------------------------------------------------------------------+   |
+|                                                                          |
+|                                [ Send Request ]                          |
+|                                                                          |
+|   ------------------------------ AGENT RESPONSE --------------------     |
+|                                                                          |
+|   Of course. Here are three concepts for your villain:                   |
+|                                                                          |
+|   **Concept 1: Lady Elara Vane** |
+|   * **Name:** Lady Elara Vane                                          |
+|   * **Backstory:** Her younger brother was killed in a failed          |
+|   |       alchemical experiment that Kaelen, the hero, was involved      |
+|   |       in. The Guild covered it up.                                 |
+|   * **Motivation:** To harness the city's power source to resurrect  |
+|   |       her brother, no matter the cost.                             |
+|                                                                          |
+|   [Use This Concept] [Request Revisions]                                 |
+|                                                                          |
++--------------------------------------------------------------------------+
+
+
+<!DOCTYPE html>
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuscript View - Chapter 3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f8f9fa;
+        color: #333;
+        overflow-x: hidden;
+    }
+
+
+    .toolbar {
+        background: #ffffff;
+        border-bottom: 1px solid #e1e5e9;
+        padding: 8px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+
+    .menu-group {
+        display: flex;
+        gap: 24px;
+    }
+
+
+    .menu-item {
+        padding: 8px 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #495057;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+
+    .menu-item:hover {
+        background: #e9ecef;
+        color: #212529;
+    }
+
+
+    .action-group {
+        display: flex;
+        gap: 12px;
+    }
+
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+
+    .btn-primary:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+
+    .btn-secondary:hover {
+        background: #545b62;
+        transform: translateY(-1px);
+    }
+
+
+    .main-container {
+        display: flex;
+        height: calc(100vh - 60px);
+    }
+
+
+    .manuscript-area {
+        flex: 1;
+        background: white;
+        margin: 20px;
+        margin-right: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        overflow-y: auto;
+    }
+
+
+    .manuscript-content {
+        padding: 40px 60px;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.8;
+        font-size: 16px;
+        color: #2c3e50;
+    }
+
+
+    .chapter-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 40px;
+        color: #1a1a1a;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 12px;
+    }
+
+
+    .paragraph {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+
+    .highlight-suggestion {
+        background: linear-gradient(90deg, rgba(255, 193, 7, 0.3) 0%, rgba(255, 193, 7, 0.1) 100%);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border-left: 3px solid #ffc107;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+
+    .highlight-suggestion:hover {
+        background: linear-gradient(90deg, rgba(255, 193, 7, 0.4) 0%, rgba(255, 193, 7, 0.2) 100%);
+        transform: translateX(2px);
+    }
+
+
+    .inline-comment {
+        position: absolute;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 14px;
+        max-width: 400px;
+        z-index: 100;
+        animation: fadeInUp 0.3s ease;
+    }
+
+
+    .comment-author {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 4px;
+    }
+
+
+    .comment-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+
+    .comment-btn {
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+
+    .btn-accept {
+        background: #28a745;
+        color: white;
+    }
+
+
+    .btn-accept:hover {
+        background: #1e7e34;
+    }
+
+
+    .btn-reject {
+        background: #dc3545;
+        color: white;
+    }
+
+
+    .btn-reject:hover {
+        background: #c82333;
+    }
+
+
+    .btn-reply {
+        background: #17a2b8;
+        color: white;
+    }
+
+
+    .btn-reply:hover {
+        background: #138496;
+    }
+
+
+    .comments-panel {
+        width: 350px;
+        background: white;
+        margin: 20px 20px 20px 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        overflow-y: auto;
+    }
+
+
+    .comments-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+
+    .comment-item {
+        padding: 20px;
+        border-bottom: 1px solid #e9ecef;
+        transition: background 0.2s ease;
+    }
+
+
+    .comment-item:hover {
+        background: #f8f9fa;
+    }
+
+
+    .comment-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+
+    .comment-author-name {
+        font-weight: 600;
+        color: #495057;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+
+    .comment-time {
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+
+    .comment-text {
+        margin-bottom: 12px;
+        line-height: 1.5;
+        color: #495057;
+    }
+
+
+    .suggestion-text {
+        background: #e7f3ff;
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 3px solid #007bff;
+        font-style: italic;
+        margin: 8px 0;
+    }
+
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+
+    .comment-item {
+        animation: slideIn 0.4s ease;
+    }
+
+
+    .comment-item:nth-child(2) { animation-delay: 0.1s; }
+    .comment-item:nth-child(3) { animation-delay: 0.2s; }
+
+
+    /* Responsive design */
+    @media (max-width: 1200px) {
+        .comments-panel {
+            width: 300px;
+        }
+    }
+
+
+    @media (max-width: 900px) {
+        .main-container {
+            flex-direction: column;
+        }
+        
+        .comments-panel {
+            width: auto;
+            margin: 10px 20px 20px 20px;
+            max-height: 300px;
+        }
+        
+        .manuscript-content {
+            padding: 20px 30px;
+        }
+    }
+</style>
+```
+
+
+</head>
+<body>
+    <div class="toolbar">
+        <div class="menu-group">
+            <button class="menu-item">File</button>
+            <button class="menu-item">Edit</button>
+            <button class="menu-item">View</button>
+            <button class="menu-item">Insert</button>
+            <button class="menu-item">Tools</button>
+        </div>
+        <div class="action-group">
+            <button class="btn-primary">Share</button>
+            <button class="btn-secondary">Download As...</button>
+        </div>
+    </div>
+
+
+```
+<div class="main-container">
+    <div class="manuscript-area">
+        <div class="manuscript-content">
+            <h1 class="chapter-title">Chapter 3: The Brass Automaton</h1>
+            
+            <div class="paragraph">
+                The rain fell in sheets over the cobblestone streets of the Iron Quarter. Cogsworth, my golem companion, paid it no mind. His ceramic chassis was built to withstand far more than a summer storm.
+            </div>
+
+
+            <div class="paragraph">
+                "The killer left this," he rumbled, his voice a low grind of stone on stone. He held up a small, intricately carved gear made of a bone-white material I'd never seen before. It hummed with a faint, sickly energy.
+            </div>
+
+
+            <div class="paragraph">
+                <span class="highlight-suggestion" onclick="toggleComment(this)">
+                    This sentence feels a bit weak. Maybe something more active?
+                    <div class="inline-comment" style="display: none;">
+                        <div class="comment-author">Editor</div>
+                        <div>This sentence feels a bit weak. Maybe something more active?</div>
+                        <div class="comment-actions">
+                            <button class="comment-btn btn-accept">Accept</button>
+                            <button class="comment-btn btn-reject">Reject</button>
+                            <button class="comment-btn btn-reply">Reply</button>
+                        </div>
+                    </div>
+                </span>
+            </div>
+
+
+            <div class="paragraph">
+                "That's no ordinary gear," I whispered, pulling out my loupe. "That's a phylactery..."
+            </div>
+        </div>
+    </div>
+
+
+    <div class="comments-panel">
+        <div class="comments-header">
+            COMMENTS & SUGGESTIONS
+        </div>
+        
+        <div class="comment-item">
+            <div class="comment-meta">
+                <span class="comment-author-name">Lyra</span>
+                <span class="comment-time">2 min ago</span>
+            </div>
+            <div class="comment-text">
+                Can we describe the rain making sizzle sounds on his chassis? Would add a nice sensory detail.
+            </div>
+            <div class="comment-actions">
+                <button class="comment-btn btn-accept">Accept</button>
+                <button class="comment-btn btn-reject">Reject</button>
+                <button class="comment-btn btn-reply">Reply</button>
+            </div>
+        </div>
+
+
+        <div class="comment-item">
+            <div class="comment-meta">
+                <span class="comment-author-name">Editor</span>
+                <span class="comment-time">5 min ago</span>
+            </div>
+            <div class="comment-text">
+                Suggestion:
+            </div>
+            <div class="suggestion-text">
+                "That's no ordinary gear," I said, my breath catching as I raised my loupe. "It's a phylactery..."
+            </div>
+            <div class="comment-actions">
+                <button class="comment-btn btn-accept">Accept</button>
+                <button class="comment-btn btn-reject">Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function toggleComment(element) {
+        const comment = element.querySelector('.inline-comment');
+        if (comment.style.display === 'none') {
+            comment.style.display = 'block';
+        } else {
+            comment.style.display = 'none';
+        }
+    }
+
+
+    // Add click handlers for comment actions
+    document.querySelectorAll('.comment-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const action = this.textContent;
+            
+            if (action === 'Accept') {
+                this.style.background = '#28a745';
+                this.textContent = 'Accepted ✓';
+                this.disabled = true;
+            } else if (action === 'Reject') {
+                this.style.background = '#dc3545';
+                this.textContent = 'Rejected ✗';
+                this.disabled = true;
+            } else if (action === 'Reply') {
+                // Simple reply simulation
+                alert('Reply feature would open a text input here');
+            }
+        });
+    });
+
+
+    // Add hover effect for manuscript text
+    document.querySelectorAll('.paragraph').forEach(p => {
+        p.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(0, 123, 255, 0.05)';
+            this.style.transition = 'background-color 0.2s ease';
+        });
+        
+        p.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = 'transparent';
+        });
+    });
+
+
+    // Simulate typing indicator
+    function addTypingIndicator() {
+        const commentsPanel = document.querySelector('.comments-panel');
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'comment-item';
+        typingDiv.style.opacity = '0.7';
+        typingDiv.innerHTML = `
+            <div class="comment-meta">
+                <span class="comment-author-name">Marcus</span>
+                <span class="comment-time">typing...</span>
+            </div>
+            <div class="comment-text" style="font-style: italic; color: #6c757d;">
+                is typing a comment...
+            </div>
+        `;
+        commentsPanel.appendChild(typingDiv);
+        
+        setTimeout(() => {
+            typingDiv.remove();
+        }, 3000);
+    }
+
+
+    // Simulate new comment after page load
+    setTimeout(addTypingIndicator, 2000);
+</script>
+```
+
+
+</body>
+</html>
+
+
+
+
+
+
+<!DOCTYPE html>
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovelForge AI - Agent Interaction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+```
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+    }
+
+
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    .header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+
+    .main-content {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        flex: 1;
+    }
+
+
+    .task-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 40px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+
+    .form-group {
+        margin-bottom: 30px;
+    }
+
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 12px;
+        font-size: 16px;
+    }
+
+
+    .agent-select {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        background: white;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+    }
+
+
+    .agent-select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+
+    .request-textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 18px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        font-family: inherit;
+        resize: vertical;
+        transition: all 0.3s ease;
+        line-height: 1.6;
+    }
+
+
+    .request-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+
+    .send-button {
+        display: block;
+        margin: 30px auto;
+        padding: 16px 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    }
+
+
+    .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+
+    .send-button:active {
+        transform: translateY(0);
+    }
+
+
+    .response-section {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+        opacity: 0;
+        animation: fadeInUp 0.6s ease forwards;
+    }
+
+
+    .response-header {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 30px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+
+    .response-content {
+        font-size: 16px;
+        line-height: 1.7;
+        color: #495057;
+        margin-bottom: 30px;
+    }
+
+
+    .concept-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 20px 0;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+
+
+    .concept-card:hover {
+        transform: translateX(4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+
+    .concept-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 16px;
+    }
+
+
+    .concept-detail {
+        margin-bottom: 12px;
+    }
+
+
+    .concept-label {
+        font-weight: 600;
+        color: #495057;
+        display: inline-block;
+        width: 100px;
+    }
+
+
+    .concept-text {
+        color: #6c757d;
+        line-height: 1.6;
+    }
+
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+
+    .action-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+
+    .btn-primary {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+    }
+
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        color: white;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(108, 117, 125, 0.4);
+    }
+
+
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 20px 0;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+
+    .typing-dots {
+        display: flex;
+        gap: 4px;
+    }
+
+
+    .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: #6c757d;
+        border-radius: 50%;
+        animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+
+    @keyframes typingBounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+
+    .hidden {
+        display: none;
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container {
+            padding: 15px;
+        }
+        
+        .main-content {
+            padding: 25px;
+        }
+        
+        .task-title {
+            font-size: 24px;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .action-btn {
+            width: 100%;
+            max-width: 200px;
+        }
+    }
+</style>
+```
+
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">N</div>
+                NovelForge AI
+            </div>
+        </div>
+
+
+```
+    <div class="main-content">
+        <h1 class="task-title">Agent Task: Brainstorm Character</h1>
+
+
+        <div class="form-group">
+            <label class="form-label">Select Agent:</label>
+            <select class="agent-select" id="agentSelect">
+                <option value="character-architect">Character Architect</option>
+                <option value="plot-weaver">Plot Weaver</option>
+                <option value="world-builder">World Builder</option>
+                <option value="dialogue-master">Dialogue Master</option>
+                <option value="scene-sculptor">Scene Sculptor</option>
+            </select>
+        </div>
+
+
+        <div class="form-group">
+            <label class="form-label">Your Request:</label>
+            <textarea 
+                class="request-textarea" 
+                id="requestTextarea"
+                placeholder="Describe what you need help with..."
+            >I need a villain for my story. She's the shadowy head of the Alchemists' Guild. She should be motivated by a secret loss from her past. Can you give me three concepts for her, including a name, a brief backstory, and her core motivation?</textarea>
+        </div>
+
+
+        <button class="send-button" onclick="sendRequest()">Send Request</button>
+
+
+        <div id="typingIndicator" class="typing-indicator hidden">
+            <span>Character Architect is thinking</span>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+
+        <div id="responseSection" class="response-section hidden">
+            <div class="response-header">Agent Response</div>
+            
+            <div class="response-content">
+                Of course! Here are three compelling concepts for your villain:
+            </div>
+
+
+            <div class="concept-card">
+                <div class="concept-title">Concept 1: Lady Elara Vane</div>
+                <div class="concept-detail">
+                    <span class="concept-label">Name:</span>
+                    <span class="concept-text">Lady Elara Vane</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Backstory:</span>
+                    <span class="concept-text">Her younger brother was killed in a failed alchemical experiment that Kaelen, the hero, was involved in. The Guild covered it up to protect their reputation and their star alchemist.</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Motivation:</span>
+                    <span class="concept-text">To harness the city's power source to resurrect her brother, no matter the cost to innocent lives.</span>
+                </div>
+            </div>
+
+
+            <div class="concept-card">
+                <div class="concept-title">Concept 2: Magistrix Corvina Blackthorne</div>
+                <div class="concept-detail">
+                    <span class="concept-label">Name:</span>
+                    <span class="concept-text">Magistrix Corvina Blackthorne</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Backstory:</span>
+                    <span class="concept-text">Lost her daughter to a plague that could have been cured with forbidden transmutation magic. The Guild's ethics committee voted against researching the cure.</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Motivation:</span>
+                    <span class="concept-text">To overthrow the Guild's moral restrictions and pursue any knowledge, regardless of the consequences.</span>
+                </div>
+            </div>
+
+
+            <div class="concept-card">
+                <div class="concept-title">Concept 3: The Shadow Regent Lydia Ashworth</div>
+                <div class="concept-detail">
+                    <span class="concept-label">Name:</span>
+                    <span class="concept-text">The Shadow Regent Lydia Ashworth</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Backstory:</span>
+                    <span class="concept-text">Her mentor betrayed her research to rivals, leading to her public disgrace and the suicide of her beloved teacher who couldn't bear the shame.</span>
+                </div>
+                <div class="concept-detail">
+                    <span class="concept-label">Motivation:</span>
+                    <span class="concept-text">To control all alchemical knowledge and eliminate anyone who might betray the Guild's secrets again.</span>
+                </div>
+            </div>
+
+
+            <div class="action-buttons">
+                <button class="action-btn btn-primary" onclick="useConcept()">Use These Concepts</button>
+                <button class="action-btn btn-secondary" onclick="requestRevisions()">Request Revisions</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function sendRequest() {
+        const button = document.querySelector('.send-button');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const responseSection = document.getElementById('responseSection');
+        
+        // Disable button and show loading state
+        button.textContent = 'Sending...';
+        button.disabled = true;
+        
+        // Show typing indicator
+        typingIndicator.classList.remove('hidden');
+        
+        // Simulate AI processing time
+        setTimeout(() => {
+            typingIndicator.classList.add('hidden');
+            responseSection.classList.remove('hidden');
+            
+            // Reset button
+            button.textContent = 'Send Request';
+            button.disabled = false;
+            
+            // Scroll to response
+            responseSection.scrollIntoView({ behavior: 'smooth' });
+        }, 3000);
+    }
+
+
+    function useConcept() {
+        const button = event.target;
+        button.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+        button.textContent = 'Concepts Saved ✓';
+        button.disabled = true;
+        
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.style.cssText = `
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+            animation: fadeInUp 0.5s ease;
+        `;
+        successMsg.textContent = 'Character concepts have been saved to your project!';
+        document.querySelector('.action-buttons').appendChild(successMsg);
+    }
+
+
+    function requestRevisions() {
+        const textarea = document.getElementById('requestTextarea');
+        textarea.value = `I'd like you to revise these concepts. For Concept 1, can you make her motivation more personal? For Concept 2, can you give her a more distinctive physical trait? And for Concept 3, can you explore a different type of betrayal?`;
+        textarea.focus();
+        
+        // Scroll back to request area
+        textarea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+
+    // Add some interactive feedback for agent selection
+    document.getElementById('agentSelect').addEventListener('change', function() {
+        const selectedAgent = this.options[this.selectedIndex].text;
+        
+        // Update task title dynamically
+        const taskTitle = document.querySelector('.task-title');
+        taskTitle.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            taskTitle.textContent = `Agent Task: Working with ${selectedAgent}`;
+            taskTitle.style.transform = 'scale(1)';
+        }, 150);
+    });
+
+
+    // Auto-resize textarea
+    document.getElementById('requestTextarea').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+
+
+    // Add character count
+    const textarea = document.getElementById('requestTextarea');
+    const charCounter = document.createElement('div');
+    charCounter.style.cssText = `
+        text-align: right;
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 8px;
+    `;
+    textarea.parentNode.appendChild(charCounter);
+
+
+    textarea.addEventListener('input', function() {
+        charCounter.textContent = `${this.value.length} characters`;
+    });
+
+
+    // Initialize character count
+    charCounter.textContent = `${textarea.value.length} characters`;
+</script>
+```
+
+
+</body>
+</html>
+
+
+
+
+
+
+<!DOCTYPE html>
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovelForge AI - Complete Writing Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+```
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f8f9fa;
+        color: #333;
+        overflow-x: hidden;
+    }
+
+
+    /* Navigation Bar */
+    .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        position: relative;
+        z-index: 1000;
+    }
+
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+
+    .nav-links {
+        display: flex;
+        gap: 24px;
+    }
+
+
+    .nav-link {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+
+    .nav-link:hover, .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+    }
+
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+
+    /* Main Content Area */
+    .main-content {
+        min-height: calc(100vh - 60px);
+        transition: all 0.3s ease;
+    }
+
+
+    .view {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+
+
+    .view.active {
+        display: block;
+    }
+
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+
+    /* Dashboard View */
+    .dashboard {
+        padding: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+
+    .dashboard-header {
+        margin-bottom: 40px;
+    }
+
+
+    .dashboard-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 16px;
+    }
+
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+
+    .projects-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+
+    .section-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+    }
+
+
+    .project-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+
+    .project-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 24px;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+
+    .project-card:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+    }
+
+
+    .project-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+
+    .project-meta {
+        display: flex;
+        justify-content: space-between;
+        color: #6c757d;
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+
+
+    .project-progress {
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+    }
+
+
+    .project-collaborators {
+        display: flex;
+        gap: 8px;
+    }
+
+
+    .collaborator-avatar {
+        width: 24px;
+        height: 24px;
+        background: #667eea;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: white;
+        font-weight: 600;
+    }
+
+
+    /* Chat Interface */
+    .chat-container {
+        height: calc(100vh - 60px);
+        display: flex;
+        background: white;
+    }
+
+
+    .chat-sidebar {
+        width: 300px;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        overflow-y: auto;
+    }
+
+
+    .chat-header {
+        padding: 20px;
+        border-bottom: 1px solid #e9ecef;
+        background: white;
+    }
+
+
+    .chat-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 12px;
+    }
+
+
+    .agent-list {
+        padding: 20px;
+    }
+
+
+    .agent-item {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+
+    .agent-item:hover {
+        background: white;
+        border-color: #667eea;
+    }
+
+
+    .agent-item.active {
+        background: #667eea;
+        color: white;
+    }
+
+
+    .agent-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+
+    .agent-specialty {
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+
+    .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    .chat-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: #f8f9fa;
+    }
+
+
+    .message {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+    }
+
+
+    .message.user {
+        flex-direction: row-reverse;
+    }
+
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+
+    .user .message-avatar {
+        background: #667eea;
+        color: white;
+    }
+
+
+    .agent .message-avatar {
+        background: #28a745;
+        color: white;
+    }
+
+
+    .message-content {
+        max-width: 70%;
+        background: white;
+        padding: 16px 20px;
+        border-radius: 18px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+
+    .user .message-content {
+        background: #667eea;
+        color: white;
+    }
+
+
+    .chat-input-area {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #e9ecef;
+    }
+
+
+    .chat-input-group {
+        display: flex;
+        gap: 12px;
+    }
+
+
+    .chat-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 24px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+
+    .chat-input:focus {
+        border-color: #667eea;
+    }
+
+
+    .chat-send-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 24px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+
+    .chat-send-btn:hover {
+        background: #5a6fd8;
+    }
+
+
+    /* Manuscript View */
+    .manuscript-container {
+        height: calc(100vh - 60px);
+        display: flex;
+    }
+
+
+    .manuscript-toolbar {
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+
+    .toolbar-group {
+        display: flex;
+        gap: 20px;
+    }
+
+
+    .toolbar-btn {
+        background: none;
+        border: none;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+
+    .toolbar-btn:hover {
+        background: #f8f9fa;
+    }
+
+
+    .manuscript-editor {
+        flex: 1;
+        background: white;
+        margin: 20px;
+        margin-right: 10px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        overflow-y: auto;
+    }
+
+
+    .editor-content {
+        padding: 40px 60px;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.8;
+        font-size: 16px;
+    }
+
+
+    .chapter-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 40px;
+        color: #2c3e50;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 12px;
+    }
+
+
+    .paragraph {
+        margin-bottom: 20px;
+        padding: 8px;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+
+    .paragraph:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+
+    .comments-sidebar {
+        width: 350px;
+        background: white;
+        margin: 20px 20px 20px 10px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        overflow-y: auto;
+    }
+
+
+    .comments-header {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+    }
+
+
+    .comment-item {
+        padding: 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+
+    .comment-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+
+    .comment-author {
+        font-weight: 600;
+        color: #667eea;
+    }
+
+
+    .comment-time {
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+
+    .comment-text {
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+
+
+    .comment-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+
+    .comment-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+
+    .btn-accept {
+        background: #28a745;
+        color: white;
+    }
+
+
+    .btn-reject {
+        background: #dc3545;
+        color: white;
+    }
+
+
+    .btn-reply {
+        background: #17a2b8;
+        color: white;
+    }
+
+
+    /* Agent Interaction View */
+    .agent-view {
+        padding: 30px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+
+    .agent-card {
+        background: white;
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+
+    .agent-task-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 40px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+
+    .form-group {
+        margin-bottom: 30px;
+    }
+
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #495057;
+    }
+
+
+    .form-select {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        background: white;
+        transition: border-color 0.3s ease;
+    }
+
+
+    .form-select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+
+    .form-textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 18px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        font-family: inherit;
+        resize: vertical;
+        transition: border-color 0.3s ease;
+    }
+
+
+    .form-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+
+    .send-btn {
+        display: block;
+        margin: 30px auto;
+        padding: 16px 40px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+
+    .send-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .navbar {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+
+        .nav-links {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+
+
+        .chat-container {
+            flex-direction: column;
+        }
+
+
+        .chat-sidebar {
+            width: 100%;
+            height: 200px;
+        }
+
+
+        .manuscript-container {
+            flex-direction: column;
+        }
+
+
+        .comments-sidebar {
+            width: 100%;
+            margin: 10px 20px;
+            max-height: 300px;
+        }
+
+
+        .dashboard {
+            padding: 20px;
+        }
+
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+    /* Loading States */
+    .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 20px;
+        color: #6c757d;
+    }
+
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e9ecef;
+        border-top: 2px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    .modal.active {
+        display: flex;
+    }
+
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6c757d;
+    }
+</style>
+```
+
+
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">N</div>
+            NovelForge AI
+        </div>
+        <div class="nav-links">
+            <button class="nav-link active" onclick="showView('dashboard')">Dashboard</button>
+            <button class="nav-link" onclick="showView('chat')">AI Chat</button>
+            <button class="nav-link" onclick="showView('manuscript')">Manuscript</button>
+            <button class="nav-link" onclick="showView('agents')">Agents</button>
+        </div>
+        <div class="user-menu">
+            <span>Sarah Chen</span>
+            <div class="user-avatar">SC</div>
+        </div>
+    </nav>
+
+
+```
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Dashboard View -->
+    <div id="dashboard" class="view active">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Welcome back, Sarah!</h1>
+                <p class="dashboard-subtitle">Continue crafting your stories with AI-powered assistance</p>
+            </div>
+
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Active Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">47,892</div>
+                    <div class="stat-label">Words Written</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">AI Interactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Collaborators</div>
+                </div>
+            </div>
+
+
+            <div class="projects-section">
+                <div class="section-header">
+                    <h2 class="section-title">Your Projects</h2>
+                    <button class="btn-primary" onclick="createProject()">New Project</button>
+                </div>
+                <div class="project-grid">
+                    <div class="project-card" onclick="openProject('steampunk')">
+                        <h3 class="project-title">The Brass Conspiracies</h3>
+                        <div class="project-meta">
+                            <span>Steampunk Mystery</span>
+                            <span>Last edited: 2 hours ago</span>
+                        </div>
+                        <div class="project-progress">
+                            <div class="progress-bar" style="width: 65%"></div>
+                        </div>
+                        <div class="project-collaborators">
+                            <div class="collaborator-avatar">M</div>
+                            <div class="collaborator-avatar">J</div>
+                            <div class="collaborator-avatar">+2</div>
+                        </div>
+                    </div>
+
+
+                    <div class="project-card" onclick="openProject('fantasy')">
+                        <h3 class="project-title">Chronicles of Aethermoor</h3>
+                        <div class="project-meta">
+                            <span>Epic Fantasy</span>
+                            <span>Last edited: 1 day ago</span>
+                        </div>
+                        <div class="project-progress">
+                            <div class="progress-bar" style="width: 30%"></div>
+                        </div>
+                        <div class="project-collaborators">
+                            <div class="collaborator-avatar">L</div>
+                            <div class="collaborator-avatar">K</div>
+                        </div>
+                    </div>
+
+
+                    <div class="project-card" onclick="openProject('scifi')">
+                        <h3 class="project-title">Neural Networks</h3>
+                        <div class="project-meta">
+                            <span>Cyberpunk Thriller</span>
+                            <span>Last edited: 3 days ago</span>
+                        </div>
+                        <div class="project-progress">
+                            <div class="progress-bar" style="width: 85%"></div>
+                        </div>
+                        <div class="project-collaborators">
+                            <div class="collaborator-avatar">A</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- AI Chat View -->
+    <div id="chat" class="view">
+        <div class="chat-container">
+            <div class="chat-sidebar">
+                <div class="chat-header">
+                    <h2 class="chat-title">AI Assistants</h2>
+                    <p style="font-size: 14px; color: #6c757d;">Choose your writing companion</p>
+                </div>
+                <div class="agent-list">
+                    <div class="agent-item active" onclick="selectAgent('plot')">
+                        <div class="agent-name">Plot Weaver</div>
+                        <div class="agent-specialty">Story structure & plot development</div>
+                    </div>
+                    <div class="agent-item" onclick="selectAgent('character')">
+                        <div class="agent-name">Character Architect</div>
+                        <div class="agent-specialty">Character creation & development</div>
+                    </div>
+                    <div class="agent-item" onclick="selectAgent('world')">
+                        <div class="agent-name">World Builder</div>
+                        <div class="agent-specialty">Setting & world creation</div>
+                    </div>
+                    <div class="agent-item" onclick="selectAgent('dialogue')">
+                        <div class="agent-name">Dialogue Master</div>
+                        <div class="agent-specialty">Conversation & voice</div>
+                    </div>
+                    <div class="agent-item" onclick="selectAgent('editor')">
+                        <div class="agent-name">Style Editor</div>
+                        <div class="agent-specialty">Prose improvement & editing</div>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-main">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message agent">
+                        <div class="message-avatar">PW</div>
+                        <div class="message-content">
+                            Hello! I'm Plot Weaver, your story structure specialist. I can help you develop compelling plots, resolve story conflicts, and create engaging narrative arcs. What story challenge can I help you with today?
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-input-group">
+                        <input type="text" class="chat-input" placeholder="Ask your AI assistant anything..." id="chatInput" onkeypress="handleChatKeypress(event)">
+                        <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Manuscript View -->
+    <div id="manuscript" class="view">
+        <div class="manuscript-toolbar">
+            <div class="toolbar-group">
+                <button class="toolbar-btn">File</button>
+                <button class="toolbar-btn">Edit</button>
+                <button class="toolbar-btn">View</button>
+                <button class="toolbar-btn">Insert</button>
+                <button class="toolbar-btn">Tools</button>
+            </div>
+            <div class="toolbar-group">
+                <button class="btn-primary">Share</button>
+                <button class="toolbar-btn">Download</button>
+            </div>
+        </div>
+        <div class="manuscript-container">
+            <div class="manuscript-editor">
+                <div class="editor-content">
+                    <h1 class="chapter-title">Chapter 3: The Brass Automaton</h1>
+                    
+                    <div class="paragraph">
+                        The rain fell in sheets over the cobblestone streets of the Iron Quarter. Cogsworth, my golem companion, paid it no mind. His ceramic chassis was built to withstand far more than a summer storm.
+                    </div>
+
+
+                    <div class="paragraph">
+                        "The killer left this," he rumbled, his voice a low grind of stone on stone. He held up a small, intricately carved gear made of a bone-white material I'd never seen before. It hummed with a faint, sickly energy.
+                    </div>
+
+
+                    <div class="paragraph">
+                        "That's no ordinary gear," I whispered, pulling out my loupe. "That's a phylactery..." The implications hit me like a thunderbolt. Someone was using necromantic alchemy to bind souls to mechanical devices.
+                    </div>
+
+
+                    <div class="paragraph">
+                        Cogsworth's optical lenses whirred as they focused on the artifact. "The resonance frequency matches the murders from last week. This is our connection."
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="comments-sidebar">
+                <div class="comments-header">
+                    Comments & Suggestions
+                </div>
+                
+                <div class="comment-item">
+                    <div class="comment-meta">
+                        <span class="comment-author">Marcus</span>
+                        <span class="comment-time">5 min ago</span>
+                    </div>
+                    <div class="comment-text">
+                        Love the atmospheric opening! The rain on ceramic detail would be a nice sensory addition.
+                    </div>
+                    <div class="comment-actions">
+                        <button class="comment-btn btn-accept">Accept</button>
+                        <button class="comment-btn btn-reply">Reply</button>
+                    </div>
+                </div>
+
+
+                <div class="comment-item">
+                    <div class="comment-meta">
+                        <span class="comment-author">Editor AI</span>
+                        <span class="comment-time">12 min ago</span>
+                    </div>
+                    <div class="comment-text">
+```
